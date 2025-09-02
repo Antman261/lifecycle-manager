@@ -1,4 +1,4 @@
-import { delay } from 'jsr:@std/async/delay';
+import { delay } from '@std/async/delay';
 import { EventEmitter } from 'node:events';
 
 export type ComponentStatus = 'pending' | 'running' | 'crashed';
