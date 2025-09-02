@@ -105,7 +105,7 @@ export class Lifecycle {
     this.#healthCheckPromise = Promise.withResolvers();
   }
 
-  get status() {
+  get status(): Status {
     return this.#status;
   }
 
