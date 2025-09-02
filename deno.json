@@ -1,0 +1,17 @@
+{
+  "name": "@antman/lifecycle",
+  "version": "0.1.0",
+  "exports": "./mod.ts",
+  "tasks": {
+    "dev": "deno test --watch"
+  },
+  "fmt": {
+    "lineWidth": 110,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true
+  },
+  "license": "MIT",
+  "imports": {
+  }
+}
