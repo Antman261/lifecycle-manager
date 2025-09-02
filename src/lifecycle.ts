@@ -77,7 +77,6 @@ export class Lifecycle {
     this.#emit(v);
   }
   #emit(event: keyof EventMap, name?: string): void {
-    // @ts-expect-error idk
     this.#emitter.emit(event, name);
   }
   /**
@@ -94,7 +93,9 @@ export class Lifecycle {
    * ```
    */
   all(cb: (event: keyof EventMap, name: string) => unknown): void {
-    [...statuses, ...componentEvents].forEach((event) => this.#emitter.on(event, (name) => cb(event, name)));
+    [...statuses, ...componentEvents].forEach((event) =>
+      this.#emitter.on(event, (name: string) => cb(event, name))
+    );
   }
   constructor(opt: Options = defaultOptions) {
     const { healthCheckIntervalMs } = { ...defaultOptions, ...opt };
