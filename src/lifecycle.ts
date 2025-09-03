@@ -1,14 +1,17 @@
+import { isDefined } from '@antman/bool';
 import { delay } from '@std/async/delay';
 import { EventEmitter } from 'node:events';
 
-export type ComponentStatus = 'pending' | 'running' | 'crashed';
-type Opt = {
+type ComponentStatus = 'pending' | 'running' | 'crashed';
+/**
+ * Define the options for the lifecycle manager
+ */
+export type LifecycleOptions = {
   /**
    * Define the frequency of component health check cycles. Note: This is the interval in which the lifecycle manager will begin polling each component's status -- the interval begins once each component has returned its status. Components returning their status in a promise can delay subsequent health checks.
    */
-  healthCheckIntervalMs: number;
+  healthCheckIntervalMs?: number;
 };
-type Options = Partial<Opt>;
 const statuses = [
   'pending',
   'starting',
@@ -27,7 +30,7 @@ export type LifecycleComponent = {
   /**
    * Provide a name to identify the component in events emitted by LifecycleManager -- useful for logging
    */
-  name: string;
+  readonly name: string;
   /**
    * The status property will be used as a healthcheck; if the component status becomes 'crashed', the lifecycle manager will call `restart` if it exists, or `start` if it doesn't
    */
@@ -45,7 +48,6 @@ export type LifecycleComponent = {
    */
   close(): Promise<unknown>;
 };
-
 const defaultOptions = { healthCheckIntervalMs: 600 };
 const componentEvents = [
   'componentStarted',
@@ -54,6 +56,9 @@ const componentEvents = [
   'componentRestarting',
   'componentRestarted',
 ] as const;
+type ComponentEvent = (typeof componentEvents)[number];
+const isComponentEvent = (e: string | undefined): e is ComponentEvent =>
+  componentEvents.includes(e as ComponentEvent);
 type EventMap = Record<Status | 'healthChecked', []> & {
   componentStarted: [string];
   componentClosing: [string];
@@ -62,7 +67,7 @@ type EventMap = Record<Status | 'healthChecked', []> & {
   componentRestarted: [string];
 };
 /**
- * Manages the clean startup and shutdown of a process
+ * Manages the clean startup and shutdown of a process and its components.
  *
  * Register lifecycle components in the order they will be initialized, and then call `start()` on the lifecycle. When the lifecycle manager receives a SIGTERM or if the `close()` method is called, it will begin the shutdown process. The lifecycle manager closes each component in the reverse order of their registration
  */
@@ -77,7 +82,9 @@ export class Lifecycle {
     this.#emit(v);
   }
   #emit(event: keyof EventMap, name?: string): void {
-    this.#emitter.emit(event, name);
+    (isComponentEvent(event) && isDefined(name))
+      ? this.#emitter.emit(event, name)
+      : this.#emitter.emit(event);
   }
   /**
    * Provide a callback for events emitted by lifecycle manager
@@ -97,7 +104,7 @@ export class Lifecycle {
       this.#emitter.on(event, (name: string) => cb(event, name))
     );
   }
-  constructor(opt: Options = defaultOptions) {
+  constructor(opt: LifecycleOptions = defaultOptions) {
     const { healthCheckIntervalMs } = { ...defaultOptions, ...opt };
     this.#status = 'pending';
     this.#components = [];
@@ -130,7 +137,7 @@ export class Lifecycle {
   public start = async (): Promise<void> => {
     this.#setStatus('starting');
     for (const component of this.#components) {
-      await this.startComponent(component);
+      await this.#startComponent(component);
     }
     Deno.addSignalListener('SIGTERM', this.close);
     (async () => {
@@ -165,7 +172,7 @@ export class Lifecycle {
     this.#setStatus('closed');
     shouldExit && Deno.exit(0);
   };
-  private async startComponent(component: LifecycleComponent): Promise<void> {
+  async #startComponent(component: LifecycleComponent): Promise<void> {
     await component.start();
     this.#emit('componentStarted', component.name);
   }
@@ -174,14 +181,14 @@ export class Lifecycle {
     await component.close();
     this.#emit('componentClosed', component.name);
   }
-  private async restartComponent(component: LifecycleComponent): Promise<void> {
+  async #restartComponent(component: LifecycleComponent): Promise<void> {
     this.#emit('componentRestarting', component.name);
     await (component.restart ?? component.start)();
     this.#emit('componentRestarted', component.name);
   }
   async #checkComponentHealth(): Promise<void> {
     for (const component of this.#components) {
-      if (await hasCrashed(component)) await this.restartComponent(component);
+      if (await hasCrashed(component)) await this.#restartComponent(component);
     }
     this.#emit('healthChecked');
   }

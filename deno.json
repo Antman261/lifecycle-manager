@@ -1,6 +1,6 @@
 {
   "name": "@antman/lifecycle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "exports": "./mod.ts",
   "tasks": {
     "dev": "deno test --watch"
@@ -13,6 +13,7 @@
   },
   "license": "MIT",
   "imports": {
+    "@antman/bool": "jsr:@antman/bool@^0.1.1",
     "@std/async": "jsr:@std/async@^1.0.14"
   }
 }

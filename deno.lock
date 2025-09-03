@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@antman/bool@~0.1.1": "0.1.1",
     "jsr:@std/assert@^1.0.13": "1.0.14",
     "jsr:@std/async@*": "1.0.14",
     "jsr:@std/async@^1.0.14": "1.0.14",
@@ -10,6 +11,9 @@
     "npm:@types/node@*": "24.2.0"
   },
   "jsr": {
+    "@antman/bool@0.1.1": {
+      "integrity": "18ea66945454ca04e32571db389ee2c35eaf6005927e6e881567ce7fd1c39114"
+    },
     "@std/assert@1.0.14": {
       "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
       "dependencies": [
@@ -43,6 +47,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@antman/bool@~0.1.1",
       "jsr:@std/async@^1.0.14"
     ]
   }
