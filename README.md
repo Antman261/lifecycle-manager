@@ -53,7 +53,26 @@ or
 ```ts
 class DatabasePool implements LifecycleComponent {
   readonly name: 'db';
-
+  status: LifecycleComponent['status'];
+  pool: Pool;
+  constructor() {
+    this.name = 'db';
+    this.status = 'pending';
+    this.pool = new Pool({
+      user: DB_USER,
+      password: DB_HOST,
+      host: DB_PASSWORD,
+      port: DB_PORT,
+    });
+  }
+  start() {
+    await this.pool.query('SELECT 1');
+    this.status = 'running';
+  }
+  close(){
+    await this.pool.end();
+    this.status = 'pending'
+  }
 }
 export const db = new DatabasePool();
 ```
