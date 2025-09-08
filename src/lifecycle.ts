@@ -24,30 +24,23 @@ type Status = 'pending' | 'starting' | 'running' | 'closing' | 'closed';
 /**
  * Define a lifecycle component to be managed by the lifecycle manager
  *
- * The status property will be used as a healthcheck; if the component status becomes 'crashed', the lifecycle manager will call `restart` if it exists, or `start` if it doesn't
+ * The status property is used for healthchecks; if the component status becomes 'crashed', the lifecycle manager will call `restart` if it exists, or `start` if it doesn't
  */
-export type LifecycleComponent = {
+export abstract class LifecycleComponent {
   /**
-   * Provide a name to identify the component in events emitted by LifecycleManager -- useful for logging
+   * Lifecycle manager will call `start` once per process lifetime. Each component's start method will be called in the sequence they were registered. Implement your component's
    */
-  readonly name: string;
-  /**
-   * The status property will be used as a healthcheck; if the component status becomes 'crashed', the lifecycle manager will call `restart` if it exists, or `start` if it doesn't
-   */
-  status: Promise<ComponentStatus> | ComponentStatus;
-  /**
-   * Lifecycle manager will call `start` once per process lifetime
-   */
-  start(): Promise<unknown>;
-  /**
-   * Called by lifecycle manager when the component status changes to 'crashed'
-   */
-  restart?(): Promise<unknown>;
+  abstract start(): Promise<unknown>;
   /**
    * Lifecycle manager will call close once per process lifetime, in the reverse order the components are registered
    */
-  close(): Promise<unknown>;
-};
+  abstract close(): Promise<unknown>;
+  /**
+   * Called by lifecycle manager to check the health of the component. Return true for healthy. If implemented, the lifecycle manager will call `start()` again if the component's health check returns false
+   */
+  abstract checkHealth?(): Promise<boolean>;
+}
+
 const defaultOptions = { healthCheckIntervalMs: 600 };
 const componentEvents = [
   'componentStarted',
@@ -174,27 +167,22 @@ export class Lifecycle {
   };
   async #startComponent(component: LifecycleComponent): Promise<void> {
     await component.start();
-    this.#emit('componentStarted', component.name);
+    this.#emit('componentStarted', component.constructor.name);
   }
   async #closeComponent(component: LifecycleComponent): Promise<void> {
-    this.#emit('componentClosing', component.name);
+    this.#emit('componentClosing', component.constructor.name);
     await component.close();
-    this.#emit('componentClosed', component.name);
+    this.#emit('componentClosed', component.constructor.name);
   }
   async #restartComponent(component: LifecycleComponent): Promise<void> {
-    this.#emit('componentRestarting', component.name);
-    await (component.restart ?? component.start)();
-    this.#emit('componentRestarted', component.name);
+    this.#emit('componentRestarting', component.constructor.name);
+    await (component.start)();
+    this.#emit('componentRestarted', component.constructor.name);
   }
   async #checkComponentHealth(): Promise<void> {
     for (const component of this.#components) {
-      if (await hasCrashed(component)) await this.#restartComponent(component);
+      if ((await component.checkHealth?.() ?? true) === false) await this.#restartComponent(component);
     }
     this.#emit('healthChecked');
   }
 }
-
-const hasStatus = (status: ComponentStatus) => async (component: LifecycleComponent): Promise<boolean> =>
-  (await component.status) === status;
-
-const hasCrashed = hasStatus('crashed');

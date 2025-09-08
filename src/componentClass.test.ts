@@ -1,17 +1,11 @@
 import { delay } from '@std/async/delay';
-import { Lifecycle, type LifecycleComponent } from './lifecycle.ts';
+import { Lifecycle, LifecycleComponent } from './lifecycle.ts';
 import { expect } from 'jsr:@std/expect/expect';
 import { setupEvents } from './testUtil.ts';
 
-class DatabasePool implements LifecycleComponent {
-  readonly name: 'db';
-  #status: LifecycleComponent['status'];
-  get status() {
-    return this.#status;
-  }
+class DatabasePool extends LifecycleComponent {
   constructor() {
-    this.name = 'db';
-    this.#status = 'pending';
+    super();
   }
   start() {
     return delay(1);
@@ -19,6 +13,7 @@ class DatabasePool implements LifecycleComponent {
   close() {
     return delay(1);
   }
+  checkHealth: undefined;
 }
 
 Deno.test('Lifecycle component as a class', async () => {
@@ -34,8 +29,8 @@ Deno.test('Lifecycle component as a class', async () => {
   await lc.close(false);
   await delay(2);
   expect(actual).toEqual([
-    'componentStarted db',
-    'componentClosing db',
-    'componentClosed db',
+    'componentStarted DatabasePool',
+    'componentClosing DatabasePool',
+    'componentClosed DatabasePool',
   ]);
 });
