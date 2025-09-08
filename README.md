@@ -17,27 +17,22 @@ if (import.meta.main) {
 }
 ```
 
-  Where each component is defined as a lifecycle component:
+Where each component is defined as a lifecycle component:
 
 ```ts
-class DatabasePool implements LifecycleComponent {
-  pool: Pool;
-  constructor() {
-    this.name = 'db';
+class DatabasePool extends LifecycleComponent {
+  pool?: Pool;
+  async start() {
     this.pool = new Pool({
       user: DB_USER,
       password: DB_HOST,
       host: DB_PASSWORD,
       port: DB_PORT,
     });
-  }
-  start() {
     await this.pool.query('SELECT 1');
-    this.status = 'running';
   }
-  close(){
+  async close(){
     await this.pool.end();
-    this.status = 'pending'
   }
   checkHealth: undefined; // Optionally, can implement a health check for a component.
 }
