@@ -17,47 +17,13 @@ if (import.meta.main) {
 }
 ```
 
-Where each component is defined as a lifecycle component, in one of two ways:
-
-```ts
-import { type LifecycleComponent } from '@antman/lifecycle';
-import { Pool } from 'pg'
-
-type Db = LifecycleComponent & { pool: Pool };
-
-const { DB_USER, DB_HOST, DB_PASSWORD, DB_PORT } = Deno.env.toObject();
-
-export const db: Db = {
-  name: 'db',
-  status: 'pending',
-  pool: new Pool({
-    user: DB_USER,
-    password: DB_HOST,
-    host: DB_PASSWORD,
-    port: DB_PORT,
-  }),
-  async start() {
-    // check database connected successfully
-    await db.pool.query('SELECT 1');
-    db.status = 'running';
-  },
-  async close() {
-    await db.pool.end();
-    db.status = 'pending'
-  }
-}
-```
-
-or 
+  Where each component is defined as a lifecycle component:
 
 ```ts
 class DatabasePool implements LifecycleComponent {
-  readonly name: 'db';
-  status: LifecycleComponent['status'];
   pool: Pool;
   constructor() {
     this.name = 'db';
-    this.status = 'pending';
     this.pool = new Pool({
       user: DB_USER,
       password: DB_HOST,
@@ -73,6 +39,7 @@ class DatabasePool implements LifecycleComponent {
     await this.pool.end();
     this.status = 'pending'
   }
+  checkHealth: undefined; // Optionally, can implement a health check for a component.
 }
 export const db = new DatabasePool();
 ```
