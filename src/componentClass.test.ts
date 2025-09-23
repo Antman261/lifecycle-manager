@@ -38,9 +38,6 @@ Deno.test('Lifecycle component as a class', async () => {
 Deno.test('lifecycle component manages child lifecycle components', async () => {
   const events: string[] = [];
   const parent = new (class ParentComponent extends LifecycleComponent {
-    constructor() {
-      super();
-    }
     async start() {
       events.push('parent.starting');
       this.register(childOne);
@@ -56,9 +53,6 @@ Deno.test('lifecycle component manages child lifecycle components', async () => 
     checkHealth: undefined;
   })();
   const childOne = new (class extends LifecycleComponent {
-    constructor() {
-      super();
-    }
     async start() {
       events.push('childOne.starting');
       await delay(1);
@@ -73,9 +67,6 @@ Deno.test('lifecycle component manages child lifecycle components', async () => 
     checkHealth: undefined;
   })();
   const childTwo = new (class extends LifecycleComponent {
-    constructor() {
-      super();
-    }
     async start() {
       events.push('childTwo.starting');
       await delay(1);
