@@ -1,5 +1,5 @@
-import { delay } from 'jsr:@std/async';
-import { expect } from 'jsr:@std/expect';
+import { delay } from '@std/async';
+import { expect } from '@std/expect';
 import { Lifecycle } from './lifecycle.ts';
 import {
   CrashingTestComponentOne,

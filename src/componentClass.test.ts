@@ -1,6 +1,6 @@
 import { delay } from '@std/async/delay';
 import { Lifecycle, LifecycleComponent } from './lifecycle.ts';
-import { expect } from 'jsr:@std/expect/expect';
+import { expect } from '@std/expect/expect';
 import { setupEvents } from './testUtil.ts';
 
 class DatabasePool extends LifecycleComponent {
@@ -32,5 +32,85 @@ Deno.test('Lifecycle component as a class', async () => {
     'componentStarted DatabasePool',
     'componentClosing DatabasePool',
     'componentClosed DatabasePool',
+  ]);
+});
+
+Deno.test('lifecycle component manages child lifecycle components', async () => {
+  const events: string[] = [];
+  const parent = new (class ParentComponent extends LifecycleComponent {
+    constructor() {
+      super();
+    }
+    async start() {
+      events.push('parent.starting');
+      this.register(childOne);
+      this.register(childTwo);
+      await this.startChildren();
+      events.push('parent.started');
+    }
+    async close() {
+      events.push('parent.closing');
+      await this.closeChildren();
+      events.push('parent.closed');
+    }
+    checkHealth: undefined;
+  })();
+  const childOne = new (class extends LifecycleComponent {
+    constructor() {
+      super();
+    }
+    async start() {
+      events.push('childOne.starting');
+      await delay(1);
+      events.push('childOne.started');
+      delay(1);
+    }
+    async close() {
+      events.push('childOne.closing');
+      await delay(1);
+      events.push('childOne.closed');
+    }
+    checkHealth: undefined;
+  })();
+  const childTwo = new (class extends LifecycleComponent {
+    constructor() {
+      super();
+    }
+    async start() {
+      events.push('childTwo.starting');
+      await delay(1);
+      events.push('childTwo.started');
+      delay(1);
+    }
+    async close() {
+      events.push('childTwo.closing');
+      await delay(1);
+      events.push('childTwo.closed');
+    }
+    checkHealth: undefined;
+  })();
+  const lc = new Lifecycle();
+  lc.on('componentStarted', (name) => events.push(`componentStarted ${name}`));
+  lc.on('componentClosed', (name) => events.push(`componentClosed ${name}`));
+  lc.register(parent);
+  await lc.start();
+  await lc.close(false);
+  await delay(2);
+  console.log(events);
+  expect(events).toEqual([
+    'parent.starting',
+    'childOne.starting',
+    'childOne.started',
+    'childTwo.starting',
+    'childTwo.started',
+    'parent.started',
+    'componentStarted ParentComponent',
+    'parent.closing',
+    'childTwo.closing',
+    'childTwo.closed',
+    'childOne.closing',
+    'childOne.closed',
+    'parent.closed',
+    'componentClosed ParentComponent',
   ]);
 });

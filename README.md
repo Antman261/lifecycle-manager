@@ -40,3 +40,7 @@ export const db = new DatabasePool();
 ```
 
 Find more details in the [full documentation](https://jsr.io/@antman/lifecycle/doc)
+
+## Nested Lifecycles
+
+Sometimes you m a lifecycle component to manage a set of LifecycleComponents and their lifecycles. Every instance of LifecycleComponent also provides a register method in addition to startChildren & closeChildren methods. Use these to register child lifecycle components as well as start and close them during the startup and shutdown of the parent component.
