@@ -1,5 +1,5 @@
 import { delay } from '@std/async/delay';
-import { LifecycleComponent } from './lifecycle.ts';
+import { LifecycleComponent } from './LifecycleComponent.ts';
 
 export const createChecks = () => {
   const checks = {

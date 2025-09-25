@@ -43,4 +43,24 @@ Find more details in the [full documentation](https://jsr.io/@antman/lifecycle/d
 
 ## Nested Lifecycles
 
-Sometimes you m a lifecycle component to manage a set of LifecycleComponents and their lifecycles. Every instance of LifecycleComponent also provides a register method in addition to startChildren & closeChildren methods. Use these to register child lifecycle components as well as start and close them during the startup and shutdown of the parent component.
+Sometimes, a lifecycle component needs to manage a subset of LifecycleComponents and their lifecycles. Every instance of LifecycleComponent also provides a registerChildComponent method and startChildComponents & closeChildComponents methods. Use these to register child lifecycle components, then start and close them during the startup and shutdown of the parent component.
+
+For example:
+
+```ts
+const parentComponent = new (class ParentComponent extends LifecycleComponent {
+  async start(){
+    this.registerChildComponent(childOne)
+    this.registerChildComponent(childTwo)
+    await this.startChildComponents()
+  }
+  async close(){
+    await this.closeChildComponents();
+  }
+  checkHealth: undefined;
+})();
+
+const lifecycle = new Lifecycle(); 
+lifecycle.register(parentComponent)
+await lifecycle.start();
+```
