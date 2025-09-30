@@ -1,17 +1,7 @@
 import { isDefined } from '@antman/bool';
-import { delay } from '@std/async/delay';
 import { EventEmitter } from 'node:events';
 import type { LifecycleComponent } from './LifecycleComponent.ts';
 
-/**
- * Define the options for the lifecycle manager
- */
-export type LifecycleOptions = {
-  /**
-   * Define the frequency of component health check cycles. Note: This is the interval in which the lifecycle manager will begin polling each component's status -- the interval begins once each component has returned its status. Components returning their status in a promise can delay subsequent health checks.
-   */
-  healthCheckIntervalMs?: number;
-};
 const statuses = [
   'pending',
   'starting',
@@ -19,25 +9,20 @@ const statuses = [
   'closing',
   'closed',
 ] as const;
-type Status = 'pending' | 'starting' | 'running' | 'closing' | 'closed';
+type Status = (typeof statuses)[number];
 
-const defaultOptions = { healthCheckIntervalMs: 600 };
 const componentEvents = [
   'componentStarted',
   'componentClosing',
   'componentClosed',
-  'componentRestarting',
-  'componentRestarted',
 ] as const;
 type ComponentEvent = (typeof componentEvents)[number];
 const isComponentEvent = (e: string | undefined): e is ComponentEvent =>
   componentEvents.includes(e as ComponentEvent);
-type EventMap = Record<Status | 'healthChecked', []> & {
+type EventMap = Record<Status, []> & {
   componentStarted: [string];
   componentClosing: [string];
   componentClosed: [string];
-  componentRestarting: [string];
-  componentRestarted: [string];
 };
 /**
  * Manages the clean startup and shutdown of a process and its components.
@@ -48,8 +33,6 @@ export class Lifecycle {
   #emitter = new EventEmitter<EventMap>();
   #status: Status;
   #components: LifecycleComponent[];
-  #healthCheckInterval: number;
-  #healthCheckPromise: PromiseWithResolvers<void>;
   #setStatus(v: Status): void {
     this.#status = v;
     this.#emit(v);
@@ -77,16 +60,9 @@ export class Lifecycle {
       this.#emitter.on(event, (name: string) => cb(event, name))
     );
   }
-  constructor(opt: LifecycleOptions = defaultOptions) {
-    const { healthCheckIntervalMs } = { ...defaultOptions, ...opt };
+  constructor() {
     this.#status = 'pending';
     this.#components = [];
-    this.#healthCheckInterval = healthCheckIntervalMs;
-    this.#healthCheckPromise = Promise.withResolvers();
-  }
-
-  get status(): Status {
-    return this.#status;
   }
 
   /**
@@ -110,16 +86,10 @@ export class Lifecycle {
   public start = async (): Promise<void> => {
     this.#setStatus('starting');
     for (const component of this.#components) {
-      await this.#startComponent(component);
+      await component.start();
+      this.#emit('componentStarted', component.constructor.name);
     }
     Deno.addSignalListener('SIGTERM', this.close);
-    (async () => {
-      do {
-        await delay(this.#healthCheckInterval);
-        await this.#checkComponentHealth();
-      } while (this.status === 'running');
-      this.#healthCheckPromise.resolve();
-    })();
     this.#setStatus('running');
   };
 
@@ -137,32 +107,14 @@ export class Lifecycle {
     Deno.removeSignalListener('SIGTERM', this.close);
     this.#setStatus('closing');
 
-    await this.#healthCheckPromise.promise;
     const components = this.#components.toReversed();
-
-    for (const component of components) await this.#closeComponent(component);
+    for (const component of components) {
+      this.#emit('componentClosing', component.constructor.name);
+      await component.close();
+      this.#emit('componentClosed', component.constructor.name);
+    }
 
     this.#setStatus('closed');
     shouldExit && Deno.exit(0);
   };
-  async #startComponent(component: LifecycleComponent): Promise<void> {
-    await component.start();
-    this.#emit('componentStarted', component.constructor.name);
-  }
-  async #closeComponent(component: LifecycleComponent): Promise<void> {
-    this.#emit('componentClosing', component.constructor.name);
-    await component.close();
-    this.#emit('componentClosed', component.constructor.name);
-  }
-  async #restartComponent(component: LifecycleComponent): Promise<void> {
-    this.#emit('componentRestarting', component.constructor.name);
-    await (component.start)();
-    this.#emit('componentRestarted', component.constructor.name);
-  }
-  async #checkComponentHealth(): Promise<void> {
-    for (const component of this.#components) {
-      if ((await component.checkHealth?.() ?? true) === false) await this.#restartComponent(component);
-    }
-    this.#emit('healthChecked');
-  }
 }

@@ -14,8 +14,6 @@ export const createChecks = () => {
 
 type EventName =
   | 'componentStarted'
-  | 'componentRestarting'
-  | 'componentRestarted'
   | 'componentClosing'
   | 'componentClosed';
 type Event = `${EventName} ${string}`;
@@ -32,7 +30,6 @@ export class TestComponentOne extends LifecycleComponent {
   async close() {
     await delay(1);
   }
-  checkHealth: undefined;
 }
 
 export class TestComponentTwo extends LifecycleComponent {
@@ -42,7 +39,6 @@ export class TestComponentTwo extends LifecycleComponent {
   async close() {
     await delay(1);
   }
-  checkHealth: undefined;
 }
 export class TestComponentThree extends LifecycleComponent {
   async start() {
@@ -51,7 +47,6 @@ export class TestComponentThree extends LifecycleComponent {
   async close() {
     await delay(1);
   }
-  checkHealth: undefined;
 }
 export class TestComponentFour extends LifecycleComponent {
   async start() {
@@ -59,45 +54,6 @@ export class TestComponentFour extends LifecycleComponent {
   }
   async close() {
     await delay(1);
-  }
-  checkHealth: undefined;
-}
-export class CrashingTestComponentOne extends LifecycleComponent {
-  crashAfterMs: number;
-  hasCrashed = false;
-  constructor(crashAfterMs = 10) {
-    super();
-    this.crashAfterMs = crashAfterMs;
-  }
-  async start() {
-    this.hasCrashed = false;
-    await delay(1);
-    delay(this.crashAfterMs).then(() => (this.hasCrashed = true));
-  }
-  async close() {
-    await delay(1);
-  }
-  checkHealth() {
-    return Promise.resolve(!this.hasCrashed);
-  }
-}
-export class CrashingTestComponentTwo extends LifecycleComponent {
-  crashAfterMs: number;
-  hasCrashed = false;
-  constructor(crashAfterMs = 10) {
-    super();
-    this.crashAfterMs = crashAfterMs;
-  }
-  async start() {
-    this.hasCrashed = false;
-    await delay(1);
-    delay(this.crashAfterMs).then(() => (this.hasCrashed = true));
-  }
-  async close() {
-    await delay(1);
-  }
-  checkHealth() {
-    return Promise.resolve(!this.hasCrashed);
   }
 }
 

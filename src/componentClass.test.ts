@@ -14,13 +14,12 @@ class DatabasePool extends LifecycleComponent {
   close() {
     return delay(1);
   }
-  checkHealth: undefined;
 }
 
 Deno.test('Lifecycle component as a class', async () => {
   const db = new DatabasePool();
   const [actual, actualEvent] = setupEvents();
-  const lc = new Lifecycle({ healthCheckIntervalMs: 50 });
+  const lc = new Lifecycle();
   lc.register(db);
 
   lc.on(...actualEvent('componentStarted'));
@@ -50,7 +49,6 @@ const parent = new (class ParentComponent extends LifecycleComponent {
     await this.closeChildComponents();
     events.push('parent.closed');
   }
-  checkHealth: undefined;
 })();
 const childOne = new (class extends LifecycleComponent {
   async start() {
@@ -64,7 +62,6 @@ const childOne = new (class extends LifecycleComponent {
     await delay(1);
     events.push('childOne.closed');
   }
-  checkHealth: undefined;
 })();
 const childTwo = new (class extends LifecycleComponent {
   async start() {
@@ -78,7 +75,6 @@ const childTwo = new (class extends LifecycleComponent {
     await delay(1);
     events.push('childTwo.closed');
   }
-  checkHealth: undefined;
 })();
 
 Deno.test('lifecycle component manages child lifecycle components', async () => {

@@ -34,7 +34,6 @@ class DatabasePool extends LifecycleComponent {
   async close(){
     await this.pool.end();
   }
-  checkHealth: undefined; // Optionally, can implement a health check for a component.
 }
 export const db = new DatabasePool();
 ```
@@ -57,7 +56,6 @@ const parentComponent = new (class ParentComponent extends LifecycleComponent {
   async close(){
     await this.closeChildComponents();
   }
-  checkHealth: undefined;
 })();
 
 const lifecycle = new Lifecycle(); 
