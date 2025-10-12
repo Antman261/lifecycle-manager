@@ -30,13 +30,6 @@ export type LifecycleNode = {
   close(): Promise<unknown>;
 };
 
-type MakerFunc = <
-  ReturnedNode extends LifecycleNode = LifecycleNode,
-  ChildNodes extends LifecycleNode = LifecycleNode,
->(
-  internals: LifecycleNodeInternals<ChildNodes>,
-) => ReturnedNode;
-
 /**
  * Use extendLifecycleNode when you need a lifecycle node to manage its own lifecycle children. This allows you to decompose a sequence of nodes into groups of nodes managing other smaller nodes in complex applications. This approach effectively turns your application lifecycle into a directed acyclic graph where every node has a single parent, AKA a tree.
  *
@@ -67,11 +60,14 @@ type MakerFunc = <
  * })
  * ```
  */
-export const newNode = (
-  maker: MakerFunc,
-): LifecycleNode => {
-  const nodes: LifecycleNode[] = [];
-  const internals: LifecycleNodeInternals = {
+export const newNode = <
+  ReturnedNode extends LifecycleNode = LifecycleNode,
+  ChildNodes extends LifecycleNode = LifecycleNode,
+>(
+  maker: Maker<ReturnedNode, ChildNodes>,
+): ReturnedNode => {
+  const nodes: ChildNodes[] = [];
+  const internals: LifecycleNodeInternals<ChildNodes> = {
     registerChildNode(node) {
       nodes.push(node);
     },
@@ -83,5 +79,11 @@ export const newNode = (
     },
     getChildren: () => [...nodes],
   };
-  return maker(internals);
+  return maker(internals) as ReturnedNode;
 };
+type Maker<
+  ReturnedNode extends LifecycleNode = LifecycleNode,
+  ChildNodes extends LifecycleNode = LifecycleNode,
+> = (
+  internals: LifecycleNodeInternals<ChildNodes>,
+) => ReturnedNode;
