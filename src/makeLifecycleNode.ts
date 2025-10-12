@@ -10,7 +10,7 @@ type LifecycleNodeInternals<T extends LifecycleNode = LifecycleNode> = {
   /**
    * Register a child node of a lifecycle node to guarantee that its children are started in the order they are registered, and closed in the reverse order. The implementer of the lifecycle node is responsible for calling startChildNodes and closeChildNodes during start and close, respectively.
    */
-  registerChildNode(node: LifecycleNode): void;
+  registerChildNode(node: T): void;
 
   /**
    * Return the registered nodes of the lifecycle node
@@ -30,9 +30,12 @@ export type LifecycleNode = {
   close(): Promise<unknown>;
 };
 
-type MakerFunc = <T extends LifecycleNode = LifecycleNode>(
-  internals: LifecycleNodeInternals<T>,
-) => LifecycleNode;
+type MakerFunc = <
+  ReturnedNode extends LifecycleNode = LifecycleNode,
+  ChildNodes extends LifecycleNode = LifecycleNode,
+>(
+  internals: LifecycleNodeInternals<ChildNodes>,
+) => ReturnedNode;
 
 /**
  * Use extendLifecycleNode when you need a lifecycle node to manage its own lifecycle children. This allows you to decompose a sequence of nodes into groups of nodes managing other smaller nodes in complex applications. This approach effectively turns your application lifecycle into a directed acyclic graph where every node has a single parent, AKA a tree.
