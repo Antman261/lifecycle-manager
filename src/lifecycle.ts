@@ -1,29 +1,10 @@
 import { isDefined } from '@antman/bool';
 import { EventEmitter } from 'node:events';
 import type { LifecycleComponent } from './LifecycleComponent.ts';
+import type { EventMap } from './EventMap.ts';
+import { type Status, statuses } from './Status.ts';
+import { componentEvents, isComponentEvent } from './componentEvents.ts';
 
-const statuses = [
-  'pending',
-  'starting',
-  'running',
-  'closing',
-  'closed',
-] as const;
-type Status = (typeof statuses)[number];
-
-const componentEvents = [
-  'componentStarted',
-  'componentClosing',
-  'componentClosed',
-] as const;
-type ComponentEvent = (typeof componentEvents)[number];
-const isComponentEvent = (e: string | undefined): e is ComponentEvent =>
-  componentEvents.includes(e as ComponentEvent);
-type EventMap = Record<Status, []> & {
-  componentStarted: [string];
-  componentClosing: [string];
-  componentClosed: [string];
-};
 /**
  * Manages the clean startup and shutdown of a process and its components.
  *

@@ -1,6 +1,6 @@
 # Lifecycle Manager
 
-Manages the clean startup and shutdown of a process. Register lifecycle components in the order they will be initialized, and then call `start()` on the lifecycle. When the lifecycle manager receives a SIGTERM or if the `close()` method is called, it will begin the shutdown process. The lifecycle manager closes each component in the reverse order of their registration
+Manages the clean startup and shutdown of a process. Register lifecycle nodes in the order they will be initialized, and then call `start()` on the lifecycle. When the lifecycle root node receives a SIGTERM or if the `close()` method is called, it will begin the shutdown process. The lifecycle root closes each node in the reverse order of their registration
 
 ## Usage
 
@@ -8,7 +8,7 @@ Manages the clean startup and shutdown of a process. Register lifecycle componen
 import { Lifecycle } from '@antman/lifecycle';
 
 if (import.meta.main) {
-  const lifecycle = new Lifecycle();
+  const lifecycle = newLifecycleRoot();
   lifecycle.all(console.log);
   lifecycle.register(db);
   lifecycle.register(webserver);
@@ -17,48 +17,48 @@ if (import.meta.main) {
 }
 ```
 
-Where each component is defined as a lifecycle component:
+Where each node is defined as a lifecycle node:
 
 ```ts
-class DatabasePool extends LifecycleComponent {
-  pool?: Pool;
-  async start() {
-    this.pool = new Pool({
-      user: DB_USER,
-      password: DB_HOST,
-      host: DB_PASSWORD,
-      port: DB_PORT,
-    });
-    await this.pool.query('SELECT 1');
+export const dbLifecycleNode = newNode(() => {
+  let pool: Pool | undefined;
+  return {
+    name: 'DatabasePool',
+    async start() {
+      pool = new Pool({
+        user: DB_USER,
+        password: DB_HOST,
+        host: DB_PASSWORD,
+        port: DB_PORT,
+      });
+      await pool.query('SELECT 1');
+    },
+    close: () => pool.end(),
   }
-  async close(){
-    await this.pool.end();
-  }
-}
-export const db = new DatabasePool();
+})
 ```
 
 Find more details in the [full documentation](https://jsr.io/@antman/lifecycle/doc)
 
 ## Nested Lifecycles
 
-Sometimes, a lifecycle component needs to manage a subset of LifecycleComponents and their lifecycles. Every instance of LifecycleComponent also provides a registerChildComponent method and startChildComponents & closeChildComponents methods. Use these to register child lifecycle components, then start and close them during the startup and shutdown of the parent component.
+Sometimes, a lifecycle node needs to manage a subset of LifecycleNodes and their lifecycles. Every instance of LifecycleNode also provides a registerChildNode method and startChildNodes & closeChildNodes methods. Use these to register child lifecycle nodes, then start and close them during the startup and shutdown of the parent node.
 
 For example:
 
 ```ts
-const parentComponent = new (class ParentComponent extends LifecycleComponent {
+const parentNode = newNode((internals) => ({
   async start(){
-    this.registerChildComponent(childOne)
-    this.registerChildComponent(childTwo)
-    await this.startChildComponents()
+    internals.registerChildNode(childOne)
+    internals.registerChildNode(childTwo)
+    await internals.startChildNodes()
   }
   async close(){
-    await this.closeChildComponents();
+    await internals.closeChildNodes();
   }
-})();
+}));
 
-const lifecycle = new Lifecycle(); 
-lifecycle.register(parentComponent)
+const lifecycle = newLifecycleRoot(); 
+lifecycle.register(parentNode)
 await lifecycle.start();
 ```
