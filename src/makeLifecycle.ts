@@ -70,6 +70,7 @@ export const newLifecycleRoot = (): LifecycleRoot => {
         await component.start();
         emitter.emit('componentStarted', component.name);
       }
+      Deno.addSignalListener('SIGTERM', root.close);
       setStatus('running');
     },
     async close(shouldExit) {
